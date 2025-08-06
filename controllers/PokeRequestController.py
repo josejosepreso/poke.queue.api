@@ -19,8 +19,7 @@ async def delete_report( id: int ):
         result = await execute_query_json( query , params , True )
         result_dict = json.loads(result)
 
-        not_found = "not_found" in result_dict[0]
-        if not_found:
+        if result_dict[0].get("not_found", False):
             raise HTTPException( status_code=404 , detail="Report was not found" )
 
         await AQueue().insert_message_on_queue( result )
@@ -60,8 +59,8 @@ async def update_pokemon_request( pokemon_request: PokemonRequest) -> dict:
 
 async def insert_pokemon_request( pokemon_request: PokemonRequest) -> dict:
     try:
-        query = " exec pokequeue.create_poke_request ? "
-        params = ( pokemon_request.pokemon_type,  )
+        query = " exec pokequeue.create_poke_request ?, ? "
+        params = ( pokemon_request.pokemon_type, pokemon_request.sample_size )
         result = await execute_query_json( query , params, True )
         result_dict = json.loads(result)
 
@@ -81,6 +80,7 @@ async def get_all_request() -> dict:
             , r.url 
             , r.created 
             , r.updated
+            , r.sample_size
         from pokequeue.requests r 
         inner join pokequeue.status s 
         on r.id_status = s.id 
